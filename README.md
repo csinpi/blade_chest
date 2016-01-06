@@ -22,7 +22,7 @@ This input data is optional. It is only useful for running the matrix reconstruc
 
 BC is used in the following format:
 
-./BC [options] data\_file model\_file
+BC [options] data\_file model\_file
 
 An example is (assuming you are under /bin):
 
