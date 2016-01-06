@@ -25,6 +25,7 @@ BC [options] data\_file model\_file
 
 Available options are:
 
+```
 -d						int               Dimensionality of the embedding (default 2)
 
 -e						float             Error allowed for termination (default 1e-4)
@@ -49,6 +50,7 @@ Available options are:
 
 
 -E						path              the matchup matrix data if you are running the reconstruction experiment (default '\0', meaning it is not used)  
+```
 
 ### Outputs
 
