@@ -2,7 +2,7 @@
 
 ## Overview
 
-Blade-chest (BC) is a software developed by [Shuo Chen](http://www.cs.cornell.edu/~shuochen/) from the Department of Computer Science, Cornell University. It learns from matchup or comparison data for future prediction. It is capable of handling intransitivity which is not covered in many conventional methods. Please see the our paper for more details. This program is granted free of charge for research and education purposes. However you must obtain a license from the authors to use it for commercial purposes. Since it is free, there is no warranty for it.
+Blade-chest (BC) is a software developed by [Shuo Chen](http://www.cs.cornell.edu/~shuochen/) from the Department of Computer Science, Cornell University. It learns from matchup or comparison data for future prediction. It is capable of handling intransitivity which is not covered in many conventional methods. Please see the [our paper](http://www.cs.cornell.edu/~shuochen/pubs/wsdm16_chen.pdf) for more details. This program is granted free of charge for research and education purposes. However you must obtain a license from the authors to use it for commercial purposes. Since it is free, there is no warranty for it.
 
 ## Build
 
@@ -25,30 +25,30 @@ BC [options] data\_file model\_file
 
 Available options are:
 
--d      int               - Dimensionality of the embedding (default 2)
+-d						int               Dimensionality of the embedding (default 2)
 
--e      float             - Error allowed for termination (default 1e-4)
+-e						float             Error allowed for termination (default 1e-4)
 
--i      float             - Learning rate (default 1e-2)
+-i						float             Learning rate (default 1e-2)
 
--l      float             - Regularization coefficient (default 0.0)
+-l						float             Regularization coefficient (default 0.0)
 
--r      [0, 1]            - Including the bias terms (1) or not (0) (default 1)
+-r						[0, 1]            Including the bias terms (1) or not (0) (default 1)
 
--S      int               - The seed for random number generator to create different training, validation, and testing split (default 0)
+-S						int               The seed for random number generator to create different training, validation, and testing split (default 0)
 
--a      float             - Adaptively increase the learning rate by this number if the improvement of the training objective function is too small (default 1.1, not recomeended to change if you run the code on our datasets)
+-a						float             Adaptively increase the learning rate by this number if the improvement of the training objective function is too small (default 1.1, not recomeended to change if you run the code on our datasets)
 
--b      float             - Adaptively decrease the learning rate by this number if the training likelihood deteriorates (default 2.0, not recomeended to change if you run the code on our datasets)
+-b						float             Adaptively decrease the learning rate by this number if the training likelihood deteriorates (default 2.0, not recomeended to change if you run the code on our datasets)
 
--t      [0, 1, 2]         - 0: 2-norm regularizer on blade and chest vectors 
-                            1: regularizer on the distances between blade and chest vectors  (default)
-                            2: sum of type 0 and type 1 as regularizer 
+-t						[0, 1, 2]         0: 2-norm regularizer on blade and chest vectors 
+  						                  1: regularizer on the distances between blade and chest vectors  (default)
+  						                  2: sum of type 0 and type 1 as regularizer 
 
--M      [0, 2]            - dist model (0) or inner model (2) (default 0. Note that 1 is another matchup function we experiemnted with, but did perform as well. You can try it if you like.)
+-M						[0, 2]            dist model (0) or inner model (2) (default 0. Note that 1 is another matchup function we experiemnted with, but did perform as well. You can try it if you like.)
 
 
--S      path              - the matchup matrix data if you are running the reconstruction experiment (default '\0', meaning it is not used)  
+-E						path              the matchup matrix data if you are running the reconstruction experiment (default '\0', meaning it is not used)  
 
 ### Outputs
 
@@ -60,7 +60,7 @@ The first four lines of the model file contain numplayers, d, rankon (usd bias t
 
 ## Datasets
 
-These datasets are collected and processed by [Shuo Chen](http://www.cs.cornell.edu/~shuochen/) from multiple public sources on the internet. Every dataset used in our paper is under /datasets except the peer grading ones which we do not have right to release. We do not own these data. Please cite each of the individual source if you use them for research or education purposes, and contact the source for any commercial use. Please see our paper for details on the sources.   
+These datasets are collected and processed by [Shuo Chen](http://www.cs.cornell.edu/~shuochen/) from multiple public sources on the internet. Every dataset used in our paper is under /datasets except the peer grading ones which we do not have right to release. We do not own these data. Please cite each of the individual source if you use them for research or education purposes, and contact the source for any commercial use. Please see [our paper](http://www.cs.cornell.edu/~shuochen/pubs/wsdm16_chen.pdf) for details on the sources.   
 
 
 
@@ -72,4 +72,4 @@ Please contact the author if you spot any bug in the software.
 
 If you use the software please cite the following paper:
 
-Shuo Chen, Thorsten Joachims. Modeling Intransitivity in Matchup and Comparison Data. The 9th ACM International Conference on Web Search and Data Mining (WSDM).
+[Shuo Chen, Thorsten Joachims. Modeling Intransitivity in Matchup and Comparison Data. The 9th ACM International Conference on Web Search and Data Mining (WSDM)](http://www.cs.cornell.edu/~shuochen/pubs/wsdm16_chen.pdf)
