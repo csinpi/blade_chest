@@ -9,11 +9,19 @@ A simple "make" will do. It will create a binary ../bin/BC, which serves for tra
 -Usage
 
 Format of the game record data:
-The format is very intuitive and mostly human-readable, as demonstrated in the files within datasets folder. The first line is the total number of players, followed by lines that contain all the players's IDs(starting from 0) names. Then there is one line for total number of games. The rest are the game records. It takes a "a:b x:y" format, meaning a beats b x times and loses to b y times.
+The format is very intuitive and mostly human-readable, as demonstrated in the files within datasets folder. The first line is the total number of players, followed by lines that contain all the players' IDs(starting from 0) names. Then there is one line for total number of games. The rest are the game records. It takes a "a:b x:y" format, meaning a beats b x times and loses to b y times.
+
+Format of the matchup matrix data (optional, only useful for running the matrix reconstruction experiment in our paper):
+The format is intuitive as well. One can see it from the example file datasets/sf4/sf4mat.txt. It is a matrix of integers in [1, 9], and diagonal elements are 0s. Rows are separated with '\n' and columns with ' '.
+
+Running the program:
+BC is used in the following format:
+BC [options] data_file model_file
+
 
 -Bug Report
 
-Please contact the authors if you spot any bug in the software.
+Please contact the author if you spot any bug in the software.
 
 -References
 
