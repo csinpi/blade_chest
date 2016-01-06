@@ -1082,7 +1082,7 @@ PARAS parse_paras(int argc, char* argv[], char* trainfile, char* embedfile)
 	myparas.beta = 2.0;
 	myparas.training_mode = 0;
 	myparas.num_llhood_track = 10;
-	myparas.regularization_type = 0;
+	myparas.regularization_type = 1;
 	myparas.modeltype = 0;
 	matchupmatfile[0] = '\0';
 	myparas.eta_reduction_thresh = log(0.5);
