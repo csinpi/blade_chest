@@ -23,21 +23,21 @@ typedef struct GameRecords
     int num_players;
 	int num_games;
 	MATCH* all_games;
-	int* test_mask;
-	char** all_players;
-	int with_mask;
+	int* test_mask; //Masks that indicates whether a game if for training, validation or testing.
+	char** all_players; //Names for all players.
+	int with_mask; //Whether the dataset contatins the mask or not.
 }
 GRECORDS;
 
 typedef struct GameEmbedding 
 {
-    int k;
-	int d;
-	int modeltype;
-	double* ranks;
-	double** tvecs;
-	double** hvecs;
-	int rankon;
+    int k; //number of players
+	int d; //dimensionality of the blade/chest vectors
+	int modeltype; //dist or inner model
+	double* ranks; //the bias terms
+	double** tvecs; //chest vectors
+	double** hvecs; //blade vectors
+	int rankon; //whether using the bias terms or not
 }
 GEMBEDDING;
 
@@ -63,7 +63,7 @@ void compute_ll_obj(double* avg_ll, double* obj, int num_used, GELE* training_ga
 
 
 
-//Baseline related items
+//Related to some weak baselines. Not used any more.
 typedef struct BaselineModel
 {
 	int num_players;

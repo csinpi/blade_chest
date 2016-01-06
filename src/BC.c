@@ -220,21 +220,15 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		exit(1);
 	}
 
+	//Initilization
 	GEMBEDDING main_embedding, last_embedding, best_embedding, ebd_grad;
 	init_game_embedding(&main_embedding, k, d, rankon, myparas.modeltype);
 	init_game_embedding(&last_embedding, k, d, rankon, myparas.modeltype);
 	init_game_embedding(&best_embedding, k, d, rankon, myparas.modeltype);
 	init_game_embedding(&ebd_grad, k, d, rankon, myparas.modeltype);
 
-	//int* test_mask = (int*)calloc(grs.num_games, sizeof(int));
 
-	//for(i = 0; i < grs.num_games; i++)
-	//	if(i % myparas.train_ratio == 0)
-	//		test_mask[i] = 1;
-	//	else
-	//		num_training_games++;
-
-	//If original data does not have mask, randomly generate it here.
+	//If original data does not have mask, randomly generate it here (ratio 5:2:3).
 	if(!grs.with_mask)
 	{
 		srand(myparas.seed);
@@ -258,9 +252,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		if(grs.test_mask[i] == FOR_TRAINING)
 			num_training_games++;
 
-	//for(i = 0; i < grs.num_games; i++)
-	//	printf("%d\n", grs.test_mask[i]);
-
+	//convergence related counter
 	int time_bomb = 0;
 	int reboot_bomb = 0;
 
@@ -268,6 +260,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 	double best_obj = -DBL_MAX;
 	int best_iter = -1;
 
+	//Variable used for computing the evaluation metrics
 	double ll = 0.0;
 	double realn = 0.0;
 
@@ -282,6 +275,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 	double realn_validate = 0.0;
 	double correct_validate = 0.0;
 	
+	//For naive baselines
 	double ll_validate_naive = 0.0;
 	double correct_validate_naive = 0.0;
 
@@ -302,7 +296,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 	double prob_a, prob_b, coeff, mf;
 
 
-	//Variables for Addagrad
+	//Variables for gradients
 	double *grad1, *grad2, *grad3, *grad4, *reg_grad1, *reg_grad2, *reg_grad3, *reg_grad4;
 	double* temp_d;
 	grad1 = (double*)malloc(d * sizeof(double));
@@ -319,6 +313,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 
 	double* game_distr = (double*)calloc(k, sizeof(double));
 
+	//A hash table for players/results mapping
 	GPHASH only_training_games = create_gp_hash(2 * grs.num_games, k);
 
 	GPAIR history_result, temp_pair;
@@ -331,7 +326,6 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 	{
 		if(grs.test_mask[i] == FOR_TRAINING)
 		{
-			//printf("<%d, %d, %d>\n", grs.all_games[i].pa, grs.all_games[i].pb, grs.all_games[i].pw);
 			temp_gele.key.fst = grs.all_games[i].pa;
 			temp_gele.key.snd = grs.all_games[i].pb;
 
@@ -401,6 +395,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 			ebd_grad.ranks[i] = 1.0;
 	}
 
+	//Tracking the log-likelihood of the last iterations
 	double* last_n_llhoods = calloc(myparas.num_llhood_track, sizeof(double));
 	int llhood_track_index = 0;
 
@@ -409,6 +404,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 
 
 
+	//Only used for reconstructing matchup matrix 
 	FILE* fp;
 	double** true_matchup_mat;
 	double** predict_matchup_mat = zerosarray(k, k);
@@ -457,7 +453,6 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 
 				coeff = (na * prob_b - nb * prob_a);
 
-				//printf("%f %f %f\n", prob_a, prob_b, coeff);
 				realn += (na + nb);
 				if(d > 0 && adjust_vec)
 				{
@@ -497,81 +492,8 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 						add_vec(main_embedding.tvecs[b], grad3, d, myparas.eta);
 
 						add_vec(main_embedding.hvecs[b], grad4, d, myparas.eta);
-
-
-						//////////////////////////////////////////////////
-						//if(game_distr[a] > 0.0)
-						//{
-						//	if(myparas.regularization_type == 0)
-						//	{
-						//		Veccopy(main_embedding.tvecs[a], reg_grad1, d);
-						//		Veccopy(main_embedding.hvecs[a], reg_grad2, d);
-						//	}
-						//	else if(myparas.regularization_type == 1)
-						//	{
-						//		Veccopy(main_embedding.tvecs[a], reg_grad1, d);
-						//		add_vec(reg_grad1, main_embedding.hvecs[a], d, -1.0);
-						//		Veccopy(reg_grad1, reg_grad2, d);
-						//		scale_vec(reg_grad2, d, -1.0);
-						//	}
-						//	else if(myparas.regularization_type == 2)
-						//	{
-						//		Veccopy(main_embedding.tvecs[a], reg_grad1, d);
-						//		scale_vec(reg_grad1, d, 2.0);
-						//		add_vec(reg_grad1, main_embedding.hvecs[a], d, -1.0);
-						//		Veccopy(main_embedding.hvecs[a], reg_grad2, d);
-						//		scale_vec(reg_grad2, d, 2.0);
-						//		add_vec(reg_grad2, main_embedding.tvecs[a], d, -1.0);
-						//	}
-
-						//	scale_vec(reg_grad1, d, -2.0 * myparas.lambda * (na + nb) / game_distr[a]);
-						//	scale_vec(reg_grad2, d, -2.0 * myparas.lambda * (na + nb) / game_distr[a]);
-
-						//	add_vec(grad1, reg_grad1, d, 1.0);
-
-						//	add_vec(grad2, reg_grad2, d, 1.0);
-
-						//	add_vec(main_embedding.tvecs[a], reg_grad1, d, myparas.eta);
-						//	add_vec(main_embedding.hvecs[a], reg_grad2, d, myparas.eta);
-						//}
-
-						//if(game_distr[b] > 0.0)
-						//{
-						//	if(myparas.regularization_type == 0)
-						//	{
-						//		Veccopy(main_embedding.tvecs[b], reg_grad3, d);
-						//		Veccopy(main_embedding.hvecs[b], reg_grad4, d);
-						//	}
-						//	else if(myparas.regularization_type == 1)
-						//	{
-						//		Veccopy(main_embedding.tvecs[b], reg_grad3, d);
-						//		add_vec(reg_grad3, main_embedding.hvecs[b], d, -1.0);
-						//		Veccopy(reg_grad3, reg_grad4, d);
-						//		scale_vec(reg_grad4, d, -1.0);
-						//	}
-						//	else if(myparas.regularization_type == 2)
-						//	{
-						//		Veccopy(main_embedding.tvecs[b], reg_grad3, d);
-						//		scale_vec(reg_grad3, d, 2.0);
-						//		add_vec(reg_grad3, main_embedding.hvecs[b], d, -1.0);
-						//		Veccopy(main_embedding.hvecs[b], reg_grad4, d);
-						//		scale_vec(reg_grad4, d, 2.0);
-						//		add_vec(reg_grad4, main_embedding.tvecs[b], d, -1.0);
-						//	}
-
-						//	scale_vec(reg_grad3, d, -2.0 * myparas.lambda * (na + nb) / game_distr[b]);
-						//	scale_vec(reg_grad4, d, -2.0 * myparas.lambda * (na + nb) / game_distr[b]);
-
-						//	add_vec(grad3, reg_grad3, d, 1.0);
-
-						//	add_vec(grad4, reg_grad4, d, 1.0);
-
-						//	add_vec(main_embedding.tvecs[b], reg_grad3, d, myparas.eta);
-						//	add_vec(main_embedding.hvecs[b], reg_grad4, d, myparas.eta);
-						//}
-						//////////////////////////////////////////////////
 					}
-					//The new inner product model
+					//The inner product model
 					else if(myparas.modeltype == 2)
 					{
 						Veccopy(main_embedding.hvecs[b], grad1, d);
@@ -604,16 +526,19 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 				ll += (na * safe_log_logit(-mf) + nb * safe_log_logit(mf));
 			}
 
+			//Adding the effects of regularization
 			if(d > 0 && adjust_vec)
 			{
 				for(a = 0; a < k; a++)
 				{
 
+					//norms of blade and chest vectors as regularizer
 					if(myparas.regularization_type == 0)
 					{
 						Veccopy(main_embedding.tvecs[a], reg_grad1, d);
 						Veccopy(main_embedding.hvecs[a], reg_grad2, d);
 					}
+					//distances between blade and chest vectors as regularizer
 					else if(myparas.regularization_type == 1)
 					{
 						Veccopy(main_embedding.tvecs[a], reg_grad1, d);
@@ -621,6 +546,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 						Veccopy(reg_grad1, reg_grad2, d);
 						scale_vec(reg_grad2, d, -1.0);
 					}
+					//sum of type 0 and 1 regularizers
 					else if(myparas.regularization_type == 2)
 					{
 						Veccopy(main_embedding.tvecs[a], reg_grad1, d);
@@ -638,13 +564,10 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 				}
 			}
 
-			//if(rankon)
-			//	for(a = 0; a < k; a++)
-			//		main_embedding.ranks[a] -= 2.0 * myparas.lambda * main_embedding.ranks[a];
 
 
 
-			//honestly computing ll
+			//honestly computing ll (when all parameters are fixed)
 			compute_ll_obj(&avg_ll, &obj, only_training_games.num_used, training_games_aggregated, main_embedding, myparas);
 
 			printf("Avg training log-likelihood: %f\n", avg_ll);
@@ -726,9 +649,10 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		}
 		copy_game_embedding(&main_embedding, &best_embedding);
 		printf("\nBest training model is from iteration %d\n", best_iter);
-		printf("Adjusting the vectors at the end: %d\n", adjust_vec);
+		//printf("Adjusting the vectors at the end: %d\n", adjust_vec);
 		printf("Final eta: %f\n", myparas.eta);
 	}
+	//This is a variation of training_mode 0. Doesn't perform as well, is thus obsolete.
 	else if(myparas.training_mode == 1)
 	{
 		while(iteration_count++ < myparas.max_iter)
@@ -740,12 +664,6 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 			ll = 0.0;
 			realn = 0.0;
 
-			//ll_test = 0.0;
-			//realn_test = 0.0;
-			//correct_test = 0.0;
-
-			//ll_test_naive = 0.0;
-			//correct_test_naive = 0.0;
 
 			triple_id  = 0;
 			printf("Iteration %d\n", iteration_count);
@@ -894,63 +812,17 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 					ebd_grad.ranks[a] += pow(coeff, 2.0);
 					ebd_grad.ranks[b] += pow(coeff, 2.0);
 				}
-				//ll += ((winner == a)? safe_log_logit(-mf) : safe_log_logit(mf));
-				//ll += ((winner == a)? log(prob_a) : log(prob_b));
-				//ll += (float) na * log(prob_a) + (float)nb * log(prob_b);
 				ll += (na * safe_log_logit(-mf) + nb * safe_log_logit(mf));
-				//else
-				//{
-				//	realn_test += 1.0;
-				//	//ll_test += ((winner == a)? safe_log_logit(-mf) : safe_log_logit(mf));
-				//	ll_test += ((winner == a)? log(prob_a) : log(prob_b));
-
-				//	if((winner == a && prob_a >= 0.5) || (winner == b && prob_b > 0.5))
-				//		correct_test += 1.0;
-
-				//	temp_pair.fst = a;
-				//	temp_pair.snd = b;
-				//	idx = find_gp_key(temp_pair, only_training_games, &whatever);
-				//	if(idx < 0)
-				//	{
-				//		history_result.fst = 0;
-				//		history_result.snd = 0;
-				//	}
-				//	else
-				//		history_result = only_training_games.array[idx].val;
-
-				//	if(((history_result.fst >= history_result.snd) && (winner == a)) || ((history_result.fst < history_result.snd) && (winner == b)))
-				//		correct_test_naive += 1.0;
-
-				//	if(history_result.fst == 0 || history_result.snd == 0)
-				//	{
-				//		history_result.fst++;
-				//		history_result.snd++;
-				//	}
-				//	if(winner == a)
-				//		ll_test_naive += log((double)history_result.fst / ((double)(history_result.fst + history_result.snd)));
-				//	else
-				//		ll_test_naive += log((double)history_result.snd / ((double)(history_result.fst + history_result.snd)));
-				//}
 			}
 
-			//print_vec(main_embedding.ranks, k);
 
 			avg_ll = ll / realn;
-			//avg_ll_test = ll_test / realn_test;
-			//avg_ll_test_naive = ll_test_naive / realn_test;
 
 			printf("Avg training log-likelihood: %f\n", avg_ll);
-			//printf("Avg testing log-likelihood: %f\n", avg_ll_test);
-			//printf("Avg testing accuracy: %f\n", (correct_test / realn_test));
-			//printf("Avg naive testing log-likelihood: %f\n", avg_ll_test_naive);
-			//printf("Avg naive testing accuracy: %f\n", (correct_test_naive / realn_test));
 
 			obj = avg_ll - myparas.lambda * (pow(frob_norm(main_embedding.tvecs, k, d), 2.0) + pow(frob_norm(main_embedding.hvecs, k, d), 2.0));
 			printf("Training obj function: %f\n", obj);
 			putchar('\n');
-
-
-
 
 			if(obj > best_obj) 
 			{
@@ -965,17 +837,6 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		}
 		copy_game_embedding(&main_embedding, &best_embedding);
 	}
-
-	//print_vec(main_embedding.ranks, k);
-	
-	//print_mat(main_embedding.tvecs, k, d);
-	//printf("---------------------\n");
-	//print_mat(main_embedding.hvecs, k, d);
-	//printf("---------------------\n");
-	//print_vec(main_embedding.ranks, k);
-
-
-	//write_GameEmbedding_to_file(main_embedding, embeddingfile);
 
 	//----------------------------- Final Test -----------------------------
 	ll_test = 0.0;
@@ -1080,6 +941,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 	}
 
 
+	//Compare against original matchup matrix if there is one
 	if(matchupmatfile[0] != '\0')
 	{
 		for(a = 0; a < k; a++)
@@ -1118,21 +980,7 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 				}
 			}
 		}
-		//print_mat(predict_matchup_mat, k, k);
-		//putchar('\n');
-		//print_mat(naive_matchup_mat, k, k);
 	}
-
-	//print_mat(predict_matchup_mat, k, k);
-	//putchar('\n');
-	//print_mat(naive_matchup_mat, k, k);
-
-
-
-
-
-
-
 
 	//avg_ll = ll / realn;
 	avg_ll_validate = ll_validate / realn_validate;
@@ -1166,18 +1014,6 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		printf("Reconstruction error naive: %f\n", matchup_matrix_recover_error(true_matchup_mat, naive_matchup_mat, k));
 	}
 
-	//obj = avg_ll - myparas.lambda * (pow(frob_norm(main_embedding.tvecs, k, d), 2.0) + pow(frob_norm(main_embedding.hvecs, k, d), 2.0));
-	//printf("Training obj function: %f\n", obj);
-	//
-
-	//printf("\n---------- Dumb Baseline ----------\n");
-	//BModel bm =  train_baseline_model(&only_training_games, myparas, 0);
-	//test_baseline_model(bm, grs, test_mask);
-	//free_BModel(&bm);
-
-	//print_gp_hash(only_training_games);
-	
-	//free(test_mask);
 	free_game_embedding(last_embedding);
 	free_game_embedding(best_embedding);
 	free_game_embedding(ebd_grad);
@@ -1204,130 +1040,10 @@ GEMBEDDING game_embedding_train_test(GRECORDS grs, PARAS myparas)
 		Array2Dfree(predict_matchup_mat, k, k);
 		Array2Dfree(naive_matchup_mat, k, k);
 	}
-	//printf("%d\n", grs.with_mask);
-	
-	//print_int_vec(grs.test_mask, grs.num_games);
 	return main_embedding;
 }
 
-//double* BTL_train_test(GRECORDS grs, PARAS myparas)
-//{
-//	int i;
-//	int t;
-//	//double* ranks = randvec(grs.num_players, 1.0);
-//	double* ranks = linspace_vec(0.0, 1.0, grs.num_players);
-//	double* ranks_g = (double*)malloc(grs.num_players * sizeof(double));
-//	for(i = 0; i < grs.num_players; i++)
-//		ranks_g[i] = 1.0;
-//	int train_ratio = 5;
-//	int* test_mask = (int*)calloc(grs.num_games, sizeof(int));
-//	double prob_a;
-//	double prob_b;
-//	for(i = 0; i < grs.num_games; i++)
-//		if(i % train_ratio == 0)
-//			test_mask[i] = 1;
-//	double train_ll, test_ll, train_n, test_n = 0.0;
-//	double llhoodprev;
-//	double eta =  myparas.eta;
-//	double coeff;
-//
-//	double* last_n_llhoods = calloc(myparas.num_llhood_track, sizeof(double));
-//	int llhood_track_index = 0;
-//
-//	for(i = 0; i < myparas.num_llhood_track; i++)
-//		last_n_llhoods[i] = 1.0;
-//
-//	for(t = 0; t < 1e3; t++)
-//	{
-//		printf("Iteration %d\n", t + 1);
-//		llhoodprev = train_ll;
-//		train_ll = 0.0;
-//		test_ll = 0.0;
-//		train_n = 0.0;
-//		test_n = 0.0;
-//		for(i = 0; i < grs.num_games; i++)
-//		{
-//			prob_a = exp(safe_log_logit(- ranks[grs.all_games[i].pa] + ranks[grs.all_games[i].pb]));
-//			//printf("%f\n", prob_a);
-//			assert(prob_a >= 0.0 && prob_a <= 1.0);
-//			prob_b = 1.0 - prob_a;
-//			//printf("(%f, %f)\n", prob_a, prob_b);
-//			if(test_mask[i] == 0)
-//			{
-//				//player a wins
-//				if(grs.all_games[i].pa == grs.all_games[i].pw)
-//					coeff = prob_b;
-//				//player b wins
-//				else
-//					coeff = -prob_a;
-//
-//				ranks[grs.all_games[i].pa] += pow(ranks_g[grs.all_games[i].pa], -0.5) * coeff * eta;
-//				ranks[grs.all_games[i].pb] -= pow(ranks_g[grs.all_games[i].pb], -0.5) * coeff * eta;
-//				ranks_g[grs.all_games[i].pa] += pow(coeff, 2.0);
-//				ranks_g[grs.all_games[i].pb] += pow(coeff, 2.0);
-//
-//				train_n += 1.0;
-//				train_ll += (grs.all_games[i].pa == grs.all_games[i].pw)? log(prob_a) : log(prob_b);
-//			}
-//			else
-//			{
-//				test_n += 1.0;
-//				test_ll += (grs.all_games[i].pa == grs.all_games[i].pw)? log(prob_a) : log(prob_b);
-//			}
-//		}
-//
-//		train_ll /= train_n;
-//		test_ll /= test_n;
-//		printf("Avg log-likelihood on train: %f\n", train_ll);
-//		printf("Avg log-likelihood on test: %f\n", test_ll);
-//
-//		if(t > 0)
-//		{
-//			if(llhoodprev > train_ll)
-//			{
-//				eta /= myparas.beta;
-//				printf("Reducing eta to: %f\n", eta);
-//			}
-//			else if(fabs((train_ll - llhoodprev) / train_ll) < 0.005)
-//			{
-//				eta *= myparas.alpha;
-//				printf("Increasing eta to: %f\n", eta);
-//			}
-//		}
-//		last_n_llhoods[llhood_track_index] = train_ll;
-//		double min_llhood = DBL_MAX, max_llhood = -DBL_MAX, total_llhood = 0.0;
-//		for(i = 0; i < myparas.num_llhood_track; i++) {
-//			total_llhood += last_n_llhoods[i];
-//			if (last_n_llhoods[i] < min_llhood)
-//				min_llhood = last_n_llhoods[i];
-//			if (last_n_llhoods[i] > max_llhood)
-//				max_llhood = last_n_llhoods[i];
-//		}
-//		printf("min_obj %f, max_obj %f, gap %f\n", min_llhood, max_llhood, fabs(min_llhood - max_llhood));
-//		if (myparas.num_llhood_track > 0
-//				&& fabs(min_llhood - max_llhood) < myparas.eps 
-//				&& t > myparas.num_llhood_track) {
-//			break;
-//		}
-//		else if (myparas.num_llhood_track <= 0
-//				&& train_ll >= llhoodprev
-//				&& train_ll - llhoodprev < myparas.eps 
-//				&& t > myparas.least_iter)
-//			break;
-//		// update llhood tracker index
-//		llhood_track_index++;
-//		llhood_track_index %= myparas.num_llhood_track;
-//		putchar('\n');
-//	}
-//
-//	//print_vec(ranks, grs.num_players);
-//	free(test_mask);
-//	free(ranks_g);
-//	return ranks;
-//
-//}
 
-//return -log(1 + exp(a))
 double safe_log_logit(double a)
 {
 	if(a < 0.0)
@@ -1340,13 +1056,10 @@ int main(int argc, char* argv[])
 {
 	PARAS myparas = parse_paras(argc, argv, trainfile, embeddingfile);
 	GRECORDS grs = read_game_records_data(trainfile, 0);
-	//double* ranks = BTL_train_test(grs, myparas);
 	GEMBEDDING ebd = game_embedding_train_test(grs, myparas);
 	write_GameEmbedding_to_file(ebd, embeddingfile);
 	free_game_embedding(ebd);
-	//printf("out !!!\n");fflush(stdout);
 	free_game_records_data(grs);
-	//free(ranks);
 	return 0;
 }
 
@@ -1373,51 +1086,6 @@ PARAS parse_paras(int argc, char* argv[], char* trainfile, char* embedfile)
 	myparas.modeltype = 0;
 	matchupmatfile[0] = '\0';
 	myparas.eta_reduction_thresh = log(0.5);
-	//myparas.do_normalization = 0;
-	//myparas.method = 2;
-	//myparas.d = 2;
-	//myparas.ita = 0.01;
-	//myparas.eps = 1e-5;
-	//myparas.lambda = 1.0;
-	//myparas.nu_multiplier = 1.0;
-	//myparas.random_init = 1;
-	//myparas.fast_collection = 0;
-	//myparas.alpha = 1.1;
-	//myparas.beta = 1.5;
-	//myparas.least_iter = 250;
-	//myparas.radius = 2;
-	//myparas.regularization_type = 0; // default no regularization
-	//myparas.stoc_grad = 1;
-	//myparas.num_points = 1;
-	//myparas.allow_self_transition = 1;
-	//myparas.output_distr = 0;
-	//myparas.grid_heuristic = 0;
-	//myparas.regeneration_interval = 10;
-	//myparas.bias_enabled = 0;
-	//myparas.num_llhood_track = 10;
-	//myparas.tagfile[0] = '\0';
-	//myparas.tag_regularizer = 0;
-	//myparas.hessian = 0;
-	//myparas.landmark_heuristic = 0;
-	//myparas.num_landmark = 0;
-	//myparas.lowerbound_ratio = 0.3;
-	//myparas.reboot_enabled = 0;
-	//myparas.landmark_burnin_iter = 100;
-	//myparas.use_hash_TTable = 1;
-	//myparas.triple_dependency = 0;
-	//myparas.angle_lambda = 1.0;
-	//myparas.transition_range = 1;
-	//myparas.num_threads = 0;
-    //myparas.rand_option = 0;
-    //myparas.init_file[0] ='\0';
-    //myparas.ALL_candidate = 0;
-	//myparas.candidate_mode = 1;
-	//myparas.candidate_length_threshold = 0;
-	//myparas.hedonic_enabled = 0;
-
-
-	// don't use r, e, or n for anything which you plan to actually change.
-	// (reserved in sge_unit.sh script)
 
 	int i;
 	for(i = 1; (i < argc) && argv[i][0] == '-'; i++)
@@ -1441,58 +1109,6 @@ PARAS parse_paras(int argc, char* argv[], char* trainfile, char* embedfile)
             case 't': i++; myparas.regularization_type = atoi(argv[i]); break;
             case 'M': i++; myparas.modeltype = atoi(argv[i]); break;
 			case 'E': i++; strcpy(matchupmatfile, argv[i]); break;
-			//case 'n': i++; myparas.do_normalization = atoi(argv[i]); break;
-			//case 't': i++; myparas.method = atoi(argv[i]); break;
-			//case 'r': i++; myparas.random_init = atoi(argv[i]); break;
-			//case 'd': i++; myparas.d = atoi(argv[i]); break;
-			//case 'i': i++; myparas.ita = atof(argv[i]); break;
-			//case 'e': i++; myparas.eps = atof(argv[i]); break;
-			//case 'l': i++; myparas.lambda = atof(argv[i]); break;
-			//case 'f': i++; myparas.fast_collection= atoi(argv[i]); break;
-			//case 's': i++; myparas.radius= atoi(argv[i]); break;
-			//case 'a': i++; myparas.alpha = atof(argv[i]); break;
-			//case 'b': i++; myparas.beta = atof(argv[i]); break;
-			//case 'g':
-			//		  i++;
-			//		  if (argv[i][1] == '\0') {
-			//			  myparas.regularization_type = atoi(argv[i]);
-			//			  myparas.tag_regularizer = atoi(argv[i]);
-			//			  printf("Both regularizers set to %d\n", myparas.regularization_type);
-			//		  }
-			//		  else {
-			//			  char first_reg[2] = "\0\0";
-			//			  char second_reg[2] = "\0\0";
-			//			  first_reg[0] = argv[i][0];
-			//			  second_reg[0] = argv[i][1];
-
-            //              myparas.regularization_type = atoi(first_reg);
-            //              myparas.tag_regularizer = atoi(second_reg);
-            //              printf("Song regularizer set to %d\n", myparas.regularization_type);
-            //              printf("Tag regularizer set to %d\n", myparas.tag_regularizer);
-            //          }                
-            //          break;
-            //case 'h': i++; myparas.grid_heuristic = atoi(argv[i]); break;
-            //case 'm': i++; myparas.landmark_heuristic = atoi(argv[i]); break;
-            //case 'p': i++; myparas.bias_enabled = atoi(argv[i]); break;
-            //case 'w': i++; myparas.num_llhood_track = atoi(argv[i]); break;
-            //case 'c': i++; myparas.hessian = atoi(argv[i]); break;
-            //case 'x': i++; strcpy(myparas.tagfile, argv[i]); break;
-            //case 'q': i++; myparas.num_landmark = atoi(argv[i]); break;
-            //case 'y': i++; myparas.lowerbound_ratio = atof(argv[i]); break;
-            //case 'o': i++; myparas.reboot_enabled = atoi(argv[i]); break;
-            //case '0': i++; myparas.landmark_burnin_iter = atoi(argv[i]); break;
-            //case 'u': i++; myparas.nu_multiplier = atof(argv[i]); break;
-            //case 'k': i++; myparas.use_hash_TTable = atoi(argv[i]); break;
-            //case 'T': i++; myparas.triple_dependency = atoi(argv[i]); break;
-            //case 'L': i++; myparas.angle_lambda = atof(argv[i]); break;
-            //case 'N': i++; myparas.transition_range = atoi(argv[i]); break;
-            //case 'D': i++; myparas.num_threads = atoi(argv[i]); break;
-            //case '9': i++; myparas.rand_option = atoi(argv[i]); break;
-            //case 'I': i++; strcpy(myparas.init_file, argv[i]); break;
-            //case 'A': i++; myparas.ALL_candidate = atoi(argv[i]); break;
-            //case 'M': i++; myparas.candidate_mode = atoi(argv[i]); break;
-            //case 'S': i++; myparas.candidate_length_threshold = atoi(argv[i]); break;
-            //case 'H': i++; myparas.hedonic_enabled = atoi(argv[i]); break;
             default: printf("Unrecognizable option -%c\n", argv[i][1]); exit(1);
 		}
 
