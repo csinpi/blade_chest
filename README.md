@@ -77,6 +77,6 @@ Please contact the author if you spot any bug in the software.
 
 ## References
 
-If you use the software please cite the following paper:
+If you use the software, please cite the following paper:
 
 [Shuo Chen, Thorsten Joachims. Modeling Intransitivity in Matchup and Comparison Data. The 9th ACM International Conference on Web Search and Data Mining (WSDM)](http://www.cs.cornell.edu/~shuochen/pubs/wsdm16_chen.pdf)
