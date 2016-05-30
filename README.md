@@ -51,7 +51,7 @@ Available options are:
   						                  1: regularizer on the distances between blade and chest vectors (default)
   						                  2: sum of type 0 and type 1 as regularizer 
 
--M						[0, 2]            dist model (0) or inner model (2) (default 0. Note that 1 is another matchup function we experiemnted with, but did perform as well. You can try it if you like.)
+-M						[0, 2]            dist model (0) or inner model (2) (default 0. Note that 1 is another matchup function we experiemnted with, but didn't perform as well. You can try it if you like.)
 
 
 -E						path              the matchup matrix data if you are running the reconstruction experiment (default '\0', meaning it is not used)  
